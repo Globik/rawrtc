@@ -11,6 +11,6 @@ ENGINE = /home/globik/rawrtc/build/prefix/lib/engines-1.1
 HELPER = /home/globik/rawrtc/src/tools
 PA = /home/globik/rawrtc/build/prefix
 INC =  -I $(PA)/include -I $(PA)/include/re -I $(PA)/include/rew -I $(HELPER)
-LIBI = -L$(PA)/lib -lusrsctp -lre -lrew -lcrypto -lssl -pthread -lrew -Wl,-rpath $(PA)/lib -L $(PA)/lib -lrawrtc
+LIBI = -L$(PA)/lib -lusrsctp -lre -lrew -lcrypto -lssl -pthread -lrew -Wl,-rpath $(PA)/lib -L $(PA)/lib -lrawrtc -luv
 a: peer-connection.c
 	gcc   $(DEF) $(INC) -o peer-connection peer-connection.c $(HELP) $(LIBI) 

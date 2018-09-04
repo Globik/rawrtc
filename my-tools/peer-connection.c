@@ -1,5 +1,9 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h> // STDIN_FILENO 
 #include <rawrtc.h>
+#include <pthread.h>
+#include <stdbool.h>
 #include <uv.h>
 #include "helper/utils.h" 
 #include "helper/handler.h"
@@ -7,8 +11,12 @@
 #define DEBUG_MODULE "peer-connection-app" 
 #define DEBUG_LEVEL 7
 #include <re_dbg.h>
-
-
+//int argc, char* argv[argc + 1]
+struct me{
+	int argc;
+	char* argvi[3];
+	//argv[argc+1];
+	};
 
 // Note: Shadows struct client 
 struct peer_connection_client {
@@ -315,10 +323,18 @@ static void print_local_description(
 
 static void exit_with_usage(char* program) {
     DEBUG_WARNING("Usage: %s <0|1 (offering)> [<ice-candidate-type> ...]\n", program);
-    exit(1);
+   // exit(1);
+   return;
 }
 
-int main(int argc, char* argv[argc + 1]) {
+void* watcher(void*data) {
+	//int argc, char* argv[argc + 1]
+	struct me*med=(struct me*)data;
+	if(data==NULL)return 0;
+	int argc=med->argc;
+	//char*argv[argc+1]=med->argvi;
+	//char*argv[3]=med->argvi;//{"a","b"};//med->argvi[argc+1];
+	
     char** ice_candidate_types = NULL;
     size_t n_ice_candidate_types = 0;
     enum rawrtc_ice_role role;
@@ -338,20 +354,24 @@ int main(int argc, char* argv[argc + 1]) {
 
     // Check arguments length
     if (argc < 2) {
-        exit_with_usage(argv[0]);
+        exit_with_usage(med->argvi[0]);
         DEBUG_PRINTF("\nexit 1\n");
+        return;
     }
 
     // Get role
     // Note: We handle it as an ICE role (because that is pretty close)
-    if (get_ice_role(&role, argv[1])) {
-        exit_with_usage(argv[0]);
+    DEBUG_PRINTF("ICE ROLE IS %s\n",med->argvi[1]);
+    if (get_ice_role(&role, med->argvi[1])) {
+        exit_with_usage(med->argvi[0]);
         DEBUG_PRINTF("\nexit 2\n");
+        return;
     }
 
     // Get enabled ICE candidate types to be added (optional)
     if (argc >= 3) {
-        ice_candidate_types = &argv[2];
+		DEBUG_PRINTF("argc>= 3!\n");
+        ice_candidate_types = &med->argvi[2];
         n_ice_candidate_types = (size_t) argc - 2;
     }
 
@@ -381,12 +401,36 @@ int main(int argc, char* argv[argc + 1]) {
     // Listen on stdin
     EOR(fd_listen(STDIN_FILENO, FD_READ, parse_remote_description, &client));
 
-    // Start main loop
-    // TODO: Wrap re_main? Yup! To the libuv loop : )
-    EOR(re_main(default_signal_handler));
+// Start main loop
+// TODO: Wrap re_main? Yup! To the libuv loop : )
+EOR(re_main(default_signal_handler));
 
-    // Stop client & bye
-    client_stop(&client);
-    before_exit();
-    return 0;
+// Stop client & bye
+client_stop(&client);
+before_exit();
+return 0;
+}
+int main(int argc, char* argv[argc + 1]){
+pthread_t thread_id;
+bool watcher_started=false;
+int err;int status_addr;
+struct me mi;
+//mi.argc=1;
+mi.argc=argc;
+//char*a[]=argv;
+mi.argvi[0]=argv[0];//argv;
+mi.argvi[1]=argv[1];
+mi.argvi[2]=argv[2];
+
+err=pthread_create(&thread_id,0,watcher,&mi);
+if(err !=0){printf("phtread_create failed\n");exit(1);}
+watcher_started=true;
+uv_loop_t *loop=uv_default_loop();
+ // EOR(fd_listen(STDIN_FILENO, FD_READ, parse_remote_description, &client));
+uv_run(loop, UV_RUN_DEFAULT); 
+err=pthread_join(thread_id,(void**)&status_addr);
+if(err !=0){printf("failed join\n"); exit(1);}
+printf("joined with addres: %d\n",status_addr);
+
+return 0;
 }
