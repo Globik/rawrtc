@@ -1,0 +1,6 @@
+*.o
+.flavor
+.objs
+kore_rawrtc_1.so
+assets.h
+cert

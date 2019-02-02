@@ -401,11 +401,11 @@ void* watcher(void*data) {
     // Listen on stdin
     EOR(fd_listen(STDIN_FILENO, FD_READ, parse_remote_description, &client));
 
-// Start main loop
+printf("***Start main loop***\n");
 // TODO: Wrap re_main? Yup! To the libuv loop : )
 EOR(re_main(default_signal_handler));
 
-// Stop client & bye
+printf("*** Stop client & bye ***\n");
 client_stop(&client);
 before_exit();
 return 0;
